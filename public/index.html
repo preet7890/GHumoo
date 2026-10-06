@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ghumo – AI Travel Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef3f2;--ink:#14213d;--muted:#5b677d;--teal:#760f52;--sun:#796848;--card:#fff;--line:#d5dedc}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Bricolage Grotesque",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+header{background:var(--ink);color:#fff;padding:40px 20px 56px}
+.wrap{max-width:960px;margin:0 auto;padding:0 20px}
+h1{font-size:clamp(2rem,6vw,3.6rem);font-weight:800;margin:0 0 8px;letter-spacing:-.02em}
+header p{margin:0;color:#b9c4d8;max-width:52ch}
+nav{display:flex;gap:8px;margin-top:24px}
+nav button{background:transparent;color:#fff;border:1px solid #3a4a70;padding:8px 16px;border-radius:999px;font:inherit;cursor:pointer}
+nav button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
+main{margin-top:-32px;padding-bottom:60px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:20px}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+label{display:flex;flex-direction:column;font-size:.9rem;font-weight:600;gap:6px}
+input,select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff}
+input:focus,select:focus,button:focus-visible{outline:3px solid var(--sun);outline-offset:1px}
+.full{grid-column:1/-1}
+.btn{background:var(--teal);color:#fff;border:0;padding:12px 20px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}
+.btn.alt{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.6;cursor:wait}
+.err{color:#b42318;font-weight:600;margin:0 0 12px}
+.hide{display:none}
+.stats{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.chip{background:var(--bg);border-radius:999px;padding:6px 14px;font-size:.9rem}
+.chip b{font-weight:800}
+.over{background:#fde8e6}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0}
+.tabs button{border:1px solid var(--line);background:#fff;padding:8px 14px;border-radius:8px;font:inherit;cursor:pointer}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.item{display:grid;grid-template-columns:84px 1fr auto;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.item small{color:var(--muted)}
+.time{font-weight:600;color:var(--teal)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+h2,h3{margin:0 0 8px}
+a{color:var(--teal)}
+.trip{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 0;border-top:1px solid var(--line)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:560px){.item{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Ghumo</h1>
+  <p>Pick a destination and a budget. Get places, restaurants, and a day-by-day plan.</p>
+  <nav>
+    <button id="tabNew" class="on">Plan a trip</button>
+    <button id="tabSaved">Saved trips</button>
+    <span id="who" style="margin-left:auto;align-self:center;color:#b9c4d8"></span>
+    <button id="logout" class="hide">Log out</button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <section id="viewAuth" class="hide">
+    <div class="panel">
+      <h2 id="authTitle">Log in</h2>
+      <form id="authForm">
+        <label>Email<input name="email" type="email" required autocomplete="email"></label>
+        <label>Password<input name="password" type="password" minlength="8" required autocomplete="current-password"></label>
+        <div class="full row">
+          <button class="btn" id="authGo">Log in</button>
+          <button type="button" class="btn alt" id="authSwap">Create an account</button>
+        </div>
+      </form>
+      <p id="authErr" class="err hide" role="alert"></p>
+    </div>
+  </section>
+
+  <section id="viewNew" class="hide">
+    <div class="panel">
+      <form id="form">
+        <label>Destination<input name="destination" placeholder="Goa, India" required></label>
+        <label>Budget<input name="budget" type="number" min="1" placeholder="25000" required></label>
+        <label>Currency
+          <select name="currency"><option>INR</option><option>USD</option><option>EUR</option><option>GBP</option></select>
+        </label>
+        <label>Also show in
+          <select name="convertTo"><option value="">Don't convert</option><option>USD</option><option>EUR</option><option>GBP</option><option>INR</option><option>JPY</option><option>THB</option><option>AED</option><option>SGD</option></select>
+        </label>
+        <label>Days<input name="days" type="number" min="1" max="14" value="3" required></label>
+        <label class="full">Interests (optional)<input name="interests" placeholder="beaches, street food, history"></label>
+        <div class="full"><button class="btn" id="go">Generate trip</button></div>
+      </form>
+    </div>
+    <p id="error" class="err hide" role="alert"></p>
+    <div id="result"></div>
+  </section>
+
+  <section id="viewSaved" class="hide">
+    <div class="panel"><h2>Saved trips</h2><div id="saved"></div></div>
+  </section>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const mapLink = (q, d) => `https://www.google.com/maps/search/${encodeURIComponent(q + " " + d)}`;
+let current = null; // { plan, meta }
+let activeDay = 0;
+
+async function api(url, opts) {
+  const r = await fetch(url, opts && { headers: { "Content-Type": "application/json" }, ...opts });
+  const data = await r.json();
+  if (r.status === 401 && !url.startsWith("/api/log") && url !== "/api/register") setUser(null);
+  if (!r.ok) throw new Error(data.error || "Something went wrong.");
+  return data;
+}
+const showError = (m) => { const e = $("#error"); e.textContent = m || ""; e.classList.toggle("hide", !m); };
+
+function showView(name) {
+  $("#viewAuth").classList.toggle("hide", name !== "auth");
+  $("#viewNew").classList.toggle("hide", name !== "new");
+  $("#viewSaved").classList.toggle("hide", name !== "saved");
+  $("#tabNew").classList.toggle("on", name === "new");
+  $("#tabSaved").classList.toggle("on", name === "saved");
+  if (name === "saved") loadSaved();
+}
+$("#tabNew").onclick = () => showView("new");
+$("#tabSaved").onclick = () => showView("saved");
+
+// ---------- Accounts ----------
+let registering = false;
+function setUser(email) {
+  $("#who").textContent = email || "";
+  $("#logout").classList.toggle("hide", !email);
+  $("#tabNew").classList.toggle("hide", !email);
+  $("#tabSaved").classList.toggle("hide", !email);
+  if (!email) $("#result").innerHTML = "";
+  showView(email ? "new" : "auth");
+}
+function authMode(reg) {
+  registering = reg;
+  $("#authTitle").textContent = reg ? "Create an account" : "Log in";
+  $("#authGo").textContent = reg ? "Create account" : "Log in";
+  $("#authSwap").textContent = reg ? "I already have an account" : "Create an account";
+  document.querySelector("#authForm [name=password]").autocomplete = reg ? "new-password" : "current-password";
+}
+$("#authSwap").onclick = () => authMode(!registering);
+$("#authForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const err = $("#authErr");
+  err.classList.add("hide");
+  try {
+    const u = await api(registering ? "/api/register" : "/api/login", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(e.target))) });
+    e.target.reset(); setUser(u.email);
+  } catch (x) { err.textContent = x.message; err.classList.remove("hide"); }
+};
+$("#logout").onclick = async () => { await api("/api/logout", { method: "POST", body: "{}" }); setUser(null); };
+api("/api/me").then((u) => setUser(u.email)).catch(() => setUser(null));
+
+$("#form").onsubmit = async (e) => {
+  e.preventDefault();
+  showError("");
+  const body = Object.fromEntries(new FormData(e.target));
+  const btn = $("#go");
+  btn.disabled = true; btn.textContent = "Planning your trip… (10-20 sec)";
+  try {
+    current = await api("/api/generate", { method: "POST", body: JSON.stringify(body) });
+    activeDay = 0;
+    render(false);
+  } catch (err) { showError(err.message); }
+  btn.disabled = false; btn.textContent = "Generate trip";
+};
+
+function render(saved) {
+  const { plan: p, meta } = current;
+  const cur = meta.currency, dest = meta.destination;
+  const money = (n) => `${Number(n || 0).toLocaleString()} ${cur}`;
+  const over = p.totalEstimatedCost > meta.budget;
+  const bd = p.budgetBreakdown || {};
+  const day = (p.days || [])[activeDay] || { activities: [], meals: [] };
+  const L = p.live || {};
+  const liveHtml = (L.weather || L.rate) ? `<div class="panel"><h3>Live info${L.place ? " for " + esc(L.place) : ""}</h3>
+      ${L.rate ? `<p>1 ${esc(L.rate.from)} = ${esc(L.rate.value)} ${esc(L.rate.to)}. Your budget is about ${Math.round(meta.budget * L.rate.value).toLocaleString()} ${esc(L.rate.to)}.</p>` : ""}
+      ${L.weather ? `<p><small>Forecast on the day this trip was generated</small></p><div class="stats">${L.weather.map((w) => `<span class="chip">${esc(w.date.slice(5))}: <b>${Math.round(w.min)} to ${Math.round(w.max)}°C</b>, rain ${esc(w.rain)}%</span>`).join("")}</div>` : ""}
+    </div>` : "";
+
+  $("#result").innerHTML = `
+    <div class="panel">
+      <h2>${esc(p.destination || dest)}</h2>
+      <p>${esc(p.summary)}</p>
+      <div class="stats">
+        <span class="chip ${over ? "over" : ""}">Estimated <b>${money(p.totalEstimatedCost)}</b> of ${money(meta.budget)}</span>
+        ${Object.entries(bd).map(([k, v]) => `<span class="chip">${esc(k)} <b>${money(v)}</b></span>`).join("")}
+      </div>
+      <div class="row">
+        ${saved ? "" : `<button class="btn" id="save">Save trip</button>`}
+        <button class="btn alt" onclick="window.print()">Print</button>
+      </div>
+    </div>
+
+    ${liveHtml}
+    <div class="panel">
+      <h2>Itinerary</h2>
+      <div class="tabs">${(p.days || []).map((d, i) =>
+        `<button data-d="${i}" class="${i === activeDay ? "on" : ""}">Day ${esc(d.day)}</button>`).join("")}</div>
+      <h3>${esc(day.theme)}</h3>
+      ${(day.activities || []).map((a) => `
+        <div class="item">
+          <span class="time">${esc(a.time)}</span>
+          <div><a href="${mapLink(a.place, dest)}" target="_blank" rel="noopener">${esc(a.place)}</a><br><small>${esc(a.description)}</small></div>
+          <span>${money(a.cost)}</span>
+        </div>`).join("")}
+      ${(day.meals || []).map((m) => `
+        <div class="item">
+          <span class="time">${esc(m.meal)}</span>
+          <div><a href="${mapLink(m.restaurant, dest)}" target="_blank" rel="noopener">${esc(m.restaurant)}</a></div>
+          <span>${money(m.cost)}</span>
+        </div>`).join("")}
+    </div>
+
+    <div class="cols">
+      <div class="panel"><h3>Places to visit</h3>${(p.places || []).map((x) =>
+        `<p><a href="${mapLink(x.name, dest)}" target="_blank" rel="noopener">${esc(x.name)}</a><br><small>${esc(x.description)}</small></p>`).join("")}</div>
+      <div class="panel"><h3>Where to eat</h3>${(p.restaurants || []).map((x) =>
+        `<p><a href="${mapLink(x.name, dest)}" target="_blank" rel="noopener">${esc(x.name)}</a><br><small>${esc(x.cuisine)} · ${esc(x.priceRange)}</small></p>`).join("")}</div>
+    </div>
+    ${(p.tips || []).length ? `<div class="panel"><h3>Tips</h3><ul>${p.tips.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>` : ""}`;
+
+  document.querySelectorAll(".tabs button").forEach((b) => (b.onclick = () => { activeDay = +b.dataset.d; render(saved); }));
+  const s = $("#save");
+  if (s) s.onclick = async () => {
+    try { await api("/api/trips", { method: "POST", body: JSON.stringify(current) }); s.textContent = "Saved"; s.disabled = true; }
+    catch (err) { showError(err.message); }
+  };
+}
+
+async function loadSaved() {
+  const box = $("#saved");
+  const trips = await api("/api/trips");
+  if (!trips.length) { box.innerHTML = "<p>No saved trips yet. Generate one and select Save trip.</p>"; return; }
+  box.innerHTML = trips.map((t) => `
+    <div class="trip">
+      <div><b>${esc(t.destination)}</b><br><small>${t.days} days · ${Number(t.budget).toLocaleString()} ${esc(t.currency)} · ${esc(t.created_at)}</small></div>
+      <div class="row"><button class="btn" data-open="${t.id}">Open</button><button class="btn alt" data-del="${t.id}">Delete</button></div>
+    </div>`).join("");
+  box.querySelectorAll("[data-open]").forEach((b) => (b.onclick = async () => {
+    const t = await api("/api/trips/" + b.dataset.open);
+    current = { plan: t.plan, meta: { destination: t.destination, budget: t.budget, currency: t.currency, days: t.days } };
+    activeDay = 0; showView("new"); render(true);
+  }));
+  box.querySelectorAll("[data-del]").forEach((b) => (b.onclick = async () => {
+    await api("/api/trips/" + b.dataset.del, { method: "DELETE" }); loadSaved();
+  }));
+}
+</script>
+</body>
+</html>
